@@ -32,6 +32,26 @@ $ open ./WireGuard/WireGuard.xcodeproj
 
 - Flip switches, press buttons, and make whirling noises until Xcode builds it.
 
+## WireGuardKit integration
+
+1. Open your Xcode project and add the Swift package with the following URL:
+   
+   ```
+   https://git.zx2c4.com/wireguard-apple
+   ```
+   
+   Choose `am/swiftpm` branch in the "Rules" section.
+   
+2. Link `wireguard-go-bridge` library. 
+   
+   - In Xcode, click File -> New -> Target. Switch to "Other" tab and choose "External Build System".
+   - Type in `libwg-go` under the Product name. Make sure the build tool is set to: `/usr/bin/make` (default)
+   - In the appeared "Info" tab of a newly created target, type in the "Directory" path under the "External Build Tool Configuration":
+     
+     ```
+     $BUILD_DIR/../../SourcePackages/checkouts/wireguard-apple/wireguard-go-bridge
+     ```
+
 ## MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
