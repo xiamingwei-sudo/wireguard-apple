@@ -51,7 +51,8 @@ class DNSResolver {
             }
         }
         if !hostnamesWithDnsResolutionFailure.isEmpty {
-            wg_log(.error, message: "DNS resolution failed for the following hostnames: \(hostnamesWithDnsResolutionFailure.joined(separator: ", "))")
+            // FIXME: somehow log that.
+            // wg_log(.error, message: "DNS resolution failed for the following hostnames: \(hostnamesWithDnsResolutionFailure.joined(separator: ", "))")
             return nil
         }
         return resolvedEndpoints
