@@ -9,9 +9,6 @@ import libwg_go
 open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
     private let dispatchQueue = DispatchQueue(label: "PacketTunnel", qos: .utility)
-    private var errorNotifier: PacketTunnelErrorNotifierProtocol?
-    private var logger: PacketTunnelLogger?
-
     private var handle: Int32?
     private var networkMonitor: NWPathMonitor?
     private var packetTunnelSettingsGenerator: PacketTunnelSettingsGenerator?
@@ -20,13 +17,10 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
         dispatchQueue.async {
             let activationAttemptId = options?["activationAttemptId"] as? String
 
-            // Set up error notifier
-            self.errorNotifier = self.makeErrorNotifier(for: activationAttemptId)
-
             // Obtain protocol configuration
             guard let tunnelProviderProtocol = self.protocolConfiguration as? NETunnelProviderProtocol else {
                 let error = PacketTunnelProviderError.missingProtocolConfiguration
-                self.errorNotifier?.notify(error)
+                self.handleTunnelError(error)
                 startTunnelCompletionHandler(error)
                 return
             }
@@ -34,26 +28,24 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             // Decode tunnel configuration
             let tunnelConfiguration: TunnelConfiguration
             do {
-                tunnelConfiguration = try self.decodeTunnelConfiguration(from: tunnelProviderProtocol)
+                tunnelConfiguration = try self.getTunnelConfiguration(from: tunnelProviderProtocol)
             } catch {
                 startTunnelCompletionHandler(PacketTunnelProviderError.decodeTunnelConfiguration(error))
                 return
             }
 
-            // Setup logger
-            self.logger = self.makeLogger(for: activationAttemptId)
-
-            // ...
+            // Configure WireGuard logger
+            self.configureLogger()
             #if os(macOS)
             wgEnableRoaming(true)
             #endif
 
-            self.logger?.log(level: .info, message: "Starting tunnel from the " + (activationAttemptId == nil ? "OS directly, rather than the app" : "app"))
+            self.logLine(level: .info, message: "Starting tunnel from the " + (activationAttemptId == nil ? "OS directly, rather than the app" : "app"))
 
             let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
             guard let resolvedEndpoints = DNSResolver.resolveSync(endpoints: endpoints) else {
                 let error = PacketTunnelProviderError.dnsResolution
-                self.errorNotifier?.notify(error)
+                self.handleTunnelError(error)
                 startTunnelCompletionHandler(error)
                 return
             }
@@ -64,10 +56,10 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             self.setTunnelNetworkSettings(self.packetTunnelSettingsGenerator!.generateNetworkSettings()) { error in
                 self.dispatchQueue.async {
                     if let error = error {
-                        self.logger?.log(level: .error, message: "Starting tunnel failed with setTunnelNetworkSettings returning \(error.localizedDescription)")
+                        self.logLine(level: .error, message: "Starting tunnel failed with setTunnelNetworkSettings returning \(error.localizedDescription)")
 
                         let tunnelProviderError = PacketTunnelProviderError.setNetworkSettings(error)
-                        self.errorNotifier?.notify(tunnelProviderError)
+                        self.handleTunnelError(tunnelProviderError)
                         startTunnelCompletionHandler(tunnelProviderError)
                     } else {
                         self.networkMonitor = NWPathMonitor()
@@ -78,24 +70,24 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
                         let fileDescriptor = (self.packetFlow.value(forKeyPath: "socket.fileDescriptor") as? Int32) ?? -1
                         if fileDescriptor < 0 {
-                            self.logger?.log(level: .error, message: "Starting tunnel failed: Could not determine file descriptor")
+                            self.logLine(level: .error, message: "Starting tunnel failed: Could not determine file descriptor")
 
                             let tunnelProviderError = PacketTunnelProviderError.tunnelDeviceFileDescriptor
-                            self.errorNotifier?.notify(tunnelProviderError)
+                            self.handleTunnelError(tunnelProviderError)
                             startTunnelCompletionHandler(tunnelProviderError)
                             return
                         }
 
                         let ifname = Self.getInterfaceName(fileDescriptor: fileDescriptor)
-                        self.logger?.log(level: .info, message: "Tunnel interface is \(ifname ?? "unknown")")
+                        self.logLine(level: .info, message: "Tunnel interface is \(ifname ?? "unknown")")
 
                         let handle = self.packetTunnelSettingsGenerator!.uapiConfiguration()
                             .withCString { return wgTurnOn($0, fileDescriptor) }
                         if handle < 0 {
-                            self.logger?.log(level: .error, message: "Starting tunnel failed with wgTurnOn returning \(handle)")
+                            self.logLine(level: .error, message: "Starting tunnel failed with wgTurnOn returning \(handle)")
 
                             let tunnelProviderError = PacketTunnelProviderError.startWireGuardBackend
-                            self.errorNotifier?.notify(tunnelProviderError)
+                            self.handleTunnelError(tunnelProviderError)
                             startTunnelCompletionHandler(tunnelProviderError)
                             return
                         }
@@ -112,9 +104,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             self.networkMonitor?.cancel()
             self.networkMonitor = nil
 
-            self.errorNotifier?.removeLastErrorFile()
-
-            self.logger?.log(level: .info, message: "Stopping tunnel")
+            self.logLine(level: .info, message: "Stopping tunnel")
             if let handle = self.handle {
                 wgTurnOff(handle)
             }
@@ -155,16 +145,16 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Subclassing
 
-    open func decodeTunnelConfiguration(from tunnelProviderProtocol: NETunnelProviderProtocol) throws -> TunnelConfiguration {
+    open func handleTunnelError(_ error: PacketTunnelProviderError) {
+        // Implement in subclasses
+    }
+
+    open func logLine(level: PacketTunnelLogLevel, message: String) {
+        // Implement in subclasses
+    }
+
+    open func getTunnelConfiguration(from tunnelProviderProtocol: NETunnelProviderProtocol) throws -> TunnelConfiguration {
         throw SubclassRequirementError.notImplemented
-    }
-
-    open func makeErrorNotifier(for activationId: String?) -> PacketTunnelErrorNotifierProtocol? {
-        return nil
-    }
-
-    open func makeLogger(for activationId: String?) -> PacketTunnelLogger? {
-        return nil
     }
 
     // MARK: - Private
@@ -191,10 +181,20 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func configureLogger() {
+        WireGuardLoggerHelper.shared.setLogHandler { [weak self] (logLevel, message) in
+            guard let self = self else { return }
+
+            self.dispatchQueue.async {
+                self.logLine(level: logLevel, message: message)
+            }
+        }
+    }
+
     private func pathUpdate(path: Network.NWPath) {
         guard let handle = handle else { return }
 
-        self.logger?.log(level: .debug, message: "Network change detected with \(path.status) route and interface order \(path.availableInterfaces)")
+        self.logLine(level: .debug, message: "Network change detected with \(path.status) route and interface order \(path.availableInterfaces)")
 
         #if os(iOS)
         if let packetTunnelSettingsGenerator = packetTunnelSettingsGenerator {
@@ -233,9 +233,7 @@ public enum PacketTunnelProviderError: LocalizedError {
             return "Missing protocol configuration"
 
         case .decodeTunnelConfiguration(let error):
-            let reason = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-
-            return "Failure to decode tunnel configuration: \(reason)"
+            return "Failure to decode tunnel configuration: \(error.localizedDescription)"
 
         case .dnsResolution:
             return "Failure to resolve endpoints DNS"
@@ -263,22 +261,6 @@ public enum SubclassRequirementError: LocalizedError {
             return "Subclass does not implement the method"
         }
     }
-}
-
-/// A protocol describing the error communication between the packet tunnel extension and the main
-/// bundle app via file.
-public protocol PacketTunnelErrorNotifierProtocol {
-    /// Notify the app about an error that occurred in the tunnel.
-    func notify(_ error: PacketTunnelProviderError)
-
-    /// Remove the file with the last error.
-    func removeLastErrorFile()
-}
-
-
-/// A protocol describing a packet tunnel logger
-public protocol PacketTunnelLogger {
-    func log(level: PacketTunnelLogLevel, message: String)
 }
 
 /// A enum describing packet tunnel log levels
