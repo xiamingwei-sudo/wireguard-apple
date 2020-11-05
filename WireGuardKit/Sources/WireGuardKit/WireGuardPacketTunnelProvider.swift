@@ -121,26 +121,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     open override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
-        // TODO: Let it be here for now since there is no way obvious way to call `wgGetConfig` from the outside.
-        dispatchQueue.async {
-            guard let completionHandler = completionHandler else { return }
-            guard let handle = self.handle else {
-                completionHandler(nil)
-                return
-            }
-
-            if messageData.count == 1 && messageData[0] == 0 {
-                if let settings = wgGetConfig(handle) {
-                    let data = String(cString: settings).data(using: .utf8)!
-                    completionHandler(data)
-                    free(settings)
-                } else {
-                    completionHandler(nil)
-                }
-            } else {
-                completionHandler(nil)
-            }
-        }
+        // no-op
     }
 
     // MARK: - Subclassing
@@ -155,6 +136,24 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
     open func getTunnelConfiguration(from tunnelProviderProtocol: NETunnelProviderProtocol) throws -> TunnelConfiguration {
         throw SubclassRequirementError.notImplemented
+    }
+
+    // MARK: - Public
+
+    public func getWireGuardConfiguration(completionHandler: @escaping (String?) -> Void) {
+        dispatchQueue.async {
+            guard let handle = self.handle else {
+                completionHandler(nil)
+                return
+            }
+
+            if let settings = wgGetConfig(handle) {
+                completionHandler(String(cString: settings))
+                free(settings)
+            } else {
+                completionHandler(nil)
+            }
+        }
     }
 
     // MARK: - Private
