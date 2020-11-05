@@ -108,6 +108,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             if let handle = self.handle {
                 wgTurnOff(handle)
             }
+            wgSetLogger(nil, nil)
 
             completionHandler()
 
@@ -181,12 +182,18 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func configureLogger() {
-        WireGuardLoggerHelper.shared.setLogHandler { [weak self] (logLevel, message) in
-            guard let self = self else { return }
+        let context = Unmanaged.passUnretained(self).toOpaque()
 
-            self.dispatchQueue.async {
-                self.logLine(level: logLevel, message: message)
-            }
+        wgSetLogger(context) { (context, logLevel, message) in
+            guard let context = context, let message = message else { return }
+
+            let unretainedSelf = Unmanaged<WireGuardPacketTunnelProvider>.fromOpaque(context)
+                .takeUnretainedValue()
+
+            let swiftString = String(cString: message).trimmingCharacters(in: .newlines)
+            let tunnelLogLevel = PacketTunnelLogLevel(rawValue: logLevel) ?? .debug
+
+            unretainedSelf.logLine(level: tunnelLogLevel, message: swiftString)
         }
     }
 
