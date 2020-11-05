@@ -156,7 +156,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func configureLogger() {
         Logger.configureGlobal(tagged: "NET", withFilePath: FileManager.logFileURL?.path)
-        wgSetLogger { level, msgC in
+        wgSetLogger(nil) { ctx, level, msgC in
             guard let msgC = msgC else { return }
             let logType: OSLogType
             switch level {
