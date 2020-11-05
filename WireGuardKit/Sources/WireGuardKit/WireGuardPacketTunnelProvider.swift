@@ -4,9 +4,8 @@
 import Foundation
 import Network
 import NetworkExtension
-import os.log
 
-class PacketTunnelProvider: NEPacketTunnelProvider {
+open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
     private let dispatchQueue = DispatchQueue(label: "PacketTunnel", qos: .utility)
 
@@ -19,7 +18,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         networkMonitor?.cancel()
     }
 
-    override func startTunnel(options: [String: NSObject]?, completionHandler startTunnelCompletionHandler: @escaping (Error?) -> Void) {
+    open override func startTunnel(options: [String: NSObject]?, completionHandler startTunnelCompletionHandler: @escaping (Error?) -> Void) {
         dispatchQueue.async {
             let activationAttemptId = options?["activationAttemptId"] as? String
             let errorNotifier = ErrorNotifier(activationAttemptId: activationAttemptId)
@@ -88,7 +87,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+    open override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
         dispatchQueue.async {
             self.networkMonitor?.cancel()
             self.networkMonitor = nil
@@ -110,7 +109,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
+    open override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
         dispatchQueue.async {
             guard let completionHandler = completionHandler else { return }
             guard let handle = self.handle else {
