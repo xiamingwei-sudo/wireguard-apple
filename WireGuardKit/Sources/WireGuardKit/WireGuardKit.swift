@@ -4,6 +4,6 @@
 import Foundation
 import libwg_go
 
-public func wireGuardVersion() -> String {
+public func getWireGuardVersion() -> String {
     return String(cString: wgVersion()!)
 }
