@@ -8,14 +8,20 @@ import libwg_go
 
 open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
+    /// An options dictionary key that's used for storing the activation identifier, supplied by the
+    /// main bundle app, when starting the VPN tunnel programmatically.
+    public static let activationAttemptIdentifierOptionsKey = "activationAttemptId"
+
     private let dispatchQueue = DispatchQueue(label: "PacketTunnel", qos: .utility)
     private var handle: Int32?
     private var networkMonitor: NWPathMonitor?
     private var packetTunnelSettingsGenerator: PacketTunnelSettingsGenerator?
 
+    private(set) var activationAttemptId: String?
+
     open override func startTunnel(options: [String: NSObject]?, completionHandler startTunnelCompletionHandler: @escaping (Error?) -> Void) {
         dispatchQueue.async {
-            let activationAttemptId = options?["activationAttemptId"] as? String
+            self.activationAttemptId = options?[Self.activationAttemptIdentifierOptionsKey] as? String
 
             // Obtain protocol configuration
             guard let tunnelProviderProtocol = self.protocolConfiguration as? NETunnelProviderProtocol else {
@@ -40,7 +46,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             wgEnableRoaming(true)
             #endif
 
-            self.logLine(level: .info, message: "Starting tunnel from the " + (activationAttemptId == nil ? "OS directly, rather than the app" : "app"))
+            self.logLine(level: .info, message: "Starting tunnel from the " + (self.activationAttemptId == nil ? "OS directly, rather than the app" : "app"))
 
             let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
             guard let resolvedEndpoints = DNSResolver.resolveSync(endpoints: endpoints) else {
