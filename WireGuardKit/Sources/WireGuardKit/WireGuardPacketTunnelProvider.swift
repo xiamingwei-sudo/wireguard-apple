@@ -17,7 +17,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
     private var networkMonitor: NWPathMonitor?
     private var packetTunnelSettingsGenerator: PacketTunnelSettingsGenerator?
 
-    private(set) var activationAttemptId: String?
+    private(set) public var activationAttemptId: String?
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler startTunnelCompletionHandler: @escaping (Error?) -> Void) {
         dispatchQueue.async {
