@@ -5,8 +5,8 @@ import Foundation
 import Network
 
 public struct IPAddressRange {
-    let address: IPAddress
-    var networkPrefixLength: UInt8
+    public let address: IPAddress
+    public let networkPrefixLength: UInt8
 
     init(address: IPAddress, networkPrefixLength: UInt8) {
         self.address = address
