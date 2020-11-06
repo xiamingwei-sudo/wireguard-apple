@@ -259,7 +259,7 @@ public enum PacketTunnelProviderError: LocalizedError {
 }
 
 /// An error type describing subclassing requirement failures.
-public enum SubclassRequirementError: LocalizedError {
+private enum SubclassRequirementError: LocalizedError {
     /// A feature is not implemented by the subclass.
     case notImplemented
 
