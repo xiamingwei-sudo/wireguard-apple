@@ -147,9 +147,11 @@ extension Endpoint {
         }
         freeaddrinfo(resultPointer)
         if ret.host != host {
-            wg_log(.debug, message: "DNS64: mapped \(host) to \(ret.host)")
+            // FIXME: somehow log that.
+            // wg_log(.debug, message: "DNS64: mapped \(host) to \(ret.host)")
         } else {
-            wg_log(.debug, message: "DNS64: mapped \(host) to itself.")
+            // FIXME: somehow log that.
+            // wg_log(.debug, message: "DNS64: mapped \(host) to itself.")
         }
         return ret
         #elseif os(macOS)
