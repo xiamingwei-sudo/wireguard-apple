@@ -127,10 +127,6 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    open override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
-        // no-op
-    }
-
     // MARK: - Subclassing
 
     open func handleTunnelError(_ error: PacketTunnelProviderError) {
