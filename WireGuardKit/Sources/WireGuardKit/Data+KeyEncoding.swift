@@ -55,7 +55,7 @@ extension Data {
 }
 
 extension Data {
-    func withUnsafeUInt8Bytes<R>(_ body: (UnsafePointer<UInt8>) -> R) -> R {
+    public func withUnsafeUInt8Bytes<R>(_ body: (UnsafePointer<UInt8>) -> R) -> R {
         assert(!isEmpty)
         return self.withUnsafeBytes { (ptr: UnsafeRawBufferPointer) -> R in
             let bytes = ptr.bindMemory(to: UInt8.self)
@@ -63,7 +63,7 @@ extension Data {
         }
     }
 
-    mutating func withUnsafeMutableUInt8Bytes<R>(_ body: (UnsafeMutablePointer<UInt8>) -> R) -> R {
+    public mutating func withUnsafeMutableUInt8Bytes<R>(_ body: (UnsafeMutablePointer<UInt8>) -> R) -> R {
         assert(!isEmpty)
         return self.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) -> R in
             let bytes = ptr.bindMemory(to: UInt8.self)
@@ -71,7 +71,7 @@ extension Data {
         }
     }
 
-    mutating func withUnsafeMutableInt8Bytes<R>(_ body: (UnsafeMutablePointer<Int8>) -> R) -> R {
+    public mutating func withUnsafeMutableInt8Bytes<R>(_ body: (UnsafeMutablePointer<Int8>) -> R) -> R {
         assert(!isEmpty)
         return self.withUnsafeMutableBytes { (ptr: UnsafeMutableRawBufferPointer) -> R in
             let bytes = ptr.bindMemory(to: Int8.self)
