@@ -28,11 +28,11 @@ extension IPAddressRange: Hashable {
 }
 
 extension IPAddressRange {
-    var stringRepresentation: String {
+    public var stringRepresentation: String {
         return "\(address)/\(networkPrefixLength)"
     }
 
-    init?(from string: String) {
+    public init?(from string: String) {
         guard let parsed = IPAddressRange.parseAddressString(string) else { return nil }
         address = parsed.0
         networkPrefixLength = parsed.1
