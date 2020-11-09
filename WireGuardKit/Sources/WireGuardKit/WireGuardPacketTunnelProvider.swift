@@ -31,12 +31,12 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
 
-            // Decode tunnel configuration
+            // Read tunnel configuration
             let tunnelConfiguration: TunnelConfiguration
             do {
                 tunnelConfiguration = try self.getTunnelConfiguration(from: tunnelProviderProtocol)
             } catch {
-                startTunnelCompletionHandler(PacketTunnelProviderError.decodeTunnelConfiguration(error))
+                startTunnelCompletionHandler(PacketTunnelProviderError.readTunnelConfiguration(error))
                 return
             }
 
@@ -220,8 +220,8 @@ public enum PacketTunnelProviderError: LocalizedError {
     /// Protocol configuration is not passed along with VPN configuration
     case missingProtocolConfiguration
 
-    /// A failure to decode tunnel configuration
-    case decodeTunnelConfiguration(Error)
+    /// A failure to read the tunnel configuration
+    case readTunnelConfiguration(Error)
 
     /// A failure to resolve endpoints DNS
     case dnsResolution
@@ -240,8 +240,8 @@ public enum PacketTunnelProviderError: LocalizedError {
         case .missingProtocolConfiguration:
             return "Missing protocol configuration"
 
-        case .decodeTunnelConfiguration(let error):
-            return "Failure to decode tunnel configuration: \(error.localizedDescription)"
+        case .readTunnelConfiguration(let error):
+            return "Failure to read tunnel configuration: \(error.localizedDescription)"
 
         case .dnsResolution:
             return "Failure to resolve endpoints DNS"

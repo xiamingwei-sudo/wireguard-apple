@@ -2,6 +2,7 @@
 // Copyright © 2018-2019 WireGuard LLC. All Rights Reserved.
 
 import NetworkExtension
+import WireGuardKit
 
 enum TunnelsManagerError: WireGuardAppError {
     case tunnelNameEmpty
@@ -67,15 +68,15 @@ enum TunnelsManagerActivationError: WireGuardAppError {
 extension PacketTunnelProviderError: WireGuardAppError {
     var alertText: AlertText {
         switch self {
-        case .savedProtocolConfigurationIsInvalid:
+        case .missingProtocolConfiguration, .readTunnelConfiguration:
             return (tr("alertTunnelActivationFailureTitle"), tr("alertTunnelActivationSavedConfigFailureMessage"))
-        case .dnsResolutionFailure:
+        case .dnsResolution:
             return (tr("alertTunnelDNSFailureTitle"), tr("alertTunnelDNSFailureMessage"))
-        case .couldNotStartBackend:
+        case .startWireGuardBackend:
             return (tr("alertTunnelActivationFailureTitle"), tr("alertTunnelActivationBackendFailureMessage"))
-        case .couldNotDetermineFileDescriptor:
+        case .tunnelDeviceFileDescriptor:
             return (tr("alertTunnelActivationFailureTitle"), tr("alertTunnelActivationFileDescriptorFailureMessage"))
-        case .couldNotSetNetworkSettings:
+        case .setNetworkSettings:
             return (tr("alertTunnelActivationFailureTitle"), tr("alertTunnelActivationSetNetworkSettingsMessage"))
         }
     }
