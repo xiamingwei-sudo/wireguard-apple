@@ -24,9 +24,10 @@ extension Data {
     }
 
     public init?(hexKey hexString: String) {
-        self.init(repeating: 0, count: Int(WG_KEY_LEN))
-
-        if !self.withUnsafeMutableUInt8Bytes { key_from_hex($0, hexString) } {
+        var bytes = [UInt8](repeating: 0, count: Int(WG_KEY_LEN))
+        if key_from_hex(&bytes, hexString) {
+            self.init(bytes)
+        } else {
             return nil
         }
     }
