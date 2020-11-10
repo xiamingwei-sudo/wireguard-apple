@@ -36,7 +36,9 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 tunnelConfiguration = try self.getTunnelConfiguration(from: tunnelProviderProtocol)
             } catch {
-                startTunnelCompletionHandler(PacketTunnelProviderError.readTunnelConfiguration(error))
+                let tunnelError = WireGuardPacketTunnelProviderError.readTunnelConfiguration(error)
+                self.handleTunnelError(tunnelError)
+                startTunnelCompletionHandler(tunnelError)
                 return
             }
 
