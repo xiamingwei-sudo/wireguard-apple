@@ -5,6 +5,24 @@ import Foundation
 import WireGuardKitCTarget
 
 extension Data {
+    public init?(hexKey hexString: String) {
+        var bytes = [UInt8](repeating: 0, count: Int(WG_KEY_LEN))
+        if key_from_hex(&bytes, hexString) {
+            self.init(bytes)
+        } else {
+            return nil
+        }
+    }
+
+    public init?(base64Key base64String: String) {
+        var bytes = [UInt8](repeating: 0, count: Int(WG_KEY_LEN))
+        if key_from_base64(&bytes, base64String) {
+            self.init(bytes)
+        } else {
+            return nil
+        }
+    }
+
     public func isKey() -> Bool {
         return self.count == WG_KEY_LEN
     }
@@ -23,15 +41,6 @@ extension Data {
         return String(data: out, encoding: .ascii)
     }
 
-    public init?(hexKey hexString: String) {
-        var bytes = [UInt8](repeating: 0, count: Int(WG_KEY_LEN))
-        if key_from_hex(&bytes, hexString) {
-            self.init(bytes)
-        } else {
-            return nil
-        }
-    }
-
     public func base64Key() -> String? {
         if self.count != WG_KEY_LEN {
             return nil
@@ -44,15 +53,6 @@ extension Data {
         }
         out.removeLast()
         return String(data: out, encoding: .ascii)
-    }
-
-    public init?(base64Key base64String: String) {
-        var bytes = [UInt8](repeating: 0, count: Int(WG_KEY_LEN))
-        if key_from_base64(&bytes, base64String) {
-            self.init(bytes)
-        } else {
-            return nil
-        }
     }
 }
 
