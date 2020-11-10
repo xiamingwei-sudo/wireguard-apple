@@ -47,9 +47,10 @@ extension Data {
     }
 
     public init?(base64Key base64String: String) {
-        self.init(repeating: 0, count: Int(WG_KEY_LEN))
-
-        if !self.withUnsafeMutableUInt8Bytes { key_from_base64($0, base64String) } {
+        var bytes = [UInt8](repeating: 0, count: Int(WG_KEY_LEN))
+        if key_from_base64(&bytes, base64String) {
+            self.init(bytes)
+        } else {
             return nil
         }
     }
