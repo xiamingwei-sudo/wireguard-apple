@@ -15,11 +15,16 @@ extension Curve25519 {
         return Data(privateKey)
     }
 
-    public static func generatePublicKey(fromPrivateKey privateKey: Data) -> Data {
+    public static func generatePublicKey(fromPrivateKey privateKey: Data) -> Data? {
         assert(privateKey.count == TunnelConfiguration.keyLength)
-        var publicKeyBytes = [UInt8](repeating: 0, count: TunnelConfiguration.keyLength)
-        var privateKeyBytes = [UInt8](privateKey)
-        curve25519_derive_public_key(&publicKeyBytes, &privateKeyBytes)
-        return Data(publicKeyBytes)
+
+        return privateKey.withUnsafeBytes { rawBufferPointer -> Data? in
+            guard let privateKeyBytes = rawBufferPointer.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
+                return nil
+            }
+            var publicKeyBytes = [UInt8](repeating: 0, count: TunnelConfiguration.keyLength)
+            curve25519_derive_public_key(&publicKeyBytes, privateKeyBytes)
+            return Data(publicKeyBytes)
+        }
     }
 }
