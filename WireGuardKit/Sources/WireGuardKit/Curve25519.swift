@@ -2,21 +2,21 @@
 // Copyright © 2018-2019 WireGuard LLC. All Rights Reserved.
 
 import Foundation
-import WireGuardKit
+import WireGuardKitCTarget
 
-enum Curve25519 {}
+public enum Curve25519 {}
 
 extension Curve25519 {
 
-    static let keyLength: Int = 32
+    public static let keyLength: Int = 32
 
-    static func generatePrivateKey() -> Data {
+    public static func generatePrivateKey() -> Data {
         var privateKey = [UInt8](repeating: 0, count: TunnelConfiguration.keyLength)
         curve25519_generate_private_key(&privateKey)
         return Data(privateKey)
     }
 
-    static func generatePublicKey(fromPrivateKey privateKey: Data) -> Data {
+    public static func generatePublicKey(fromPrivateKey privateKey: Data) -> Data {
         assert(privateKey.count == TunnelConfiguration.keyLength)
         var publicKeyBytes = [UInt8](repeating: 0, count: TunnelConfiguration.keyLength)
         var privateKeyBytes = [UInt8](privateKey)
@@ -26,7 +26,7 @@ extension Curve25519 {
 }
 
 extension InterfaceConfiguration {
-    var publicKey: Data {
+    public var publicKey: Data {
         return Curve25519.generatePublicKey(fromPrivateKey: privateKey)
     }
 }
