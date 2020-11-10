@@ -7,7 +7,6 @@ import WireGuardKitCTarget
 public enum Curve25519 {}
 
 extension Curve25519 {
-
     public static let keyLength: Int = 32
 
     public static func generatePrivateKey() -> Data {
@@ -22,11 +21,5 @@ extension Curve25519 {
         var privateKeyBytes = [UInt8](privateKey)
         curve25519_derive_public_key(&publicKeyBytes, &privateKeyBytes)
         return Data(publicKeyBytes)
-    }
-}
-
-extension InterfaceConfiguration {
-    public var publicKey: Data {
-        return Curve25519.generatePublicKey(fromPrivateKey: privateKey)
     }
 }

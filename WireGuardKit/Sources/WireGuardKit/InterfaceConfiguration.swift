@@ -11,6 +11,10 @@ public struct InterfaceConfiguration {
     public var mtu: UInt16?
     public var dns = [DNSServer]()
 
+    public var publicKey: Data {
+        return Curve25519.generatePublicKey(fromPrivateKey: privateKey)
+    }
+
     public init(privateKey: Data) {
         if privateKey.count != TunnelConfiguration.keyLength {
             fatalError("Invalid private key")
