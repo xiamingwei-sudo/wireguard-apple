@@ -4,7 +4,9 @@
 import Foundation
 import WireGuardKit
 
-struct Curve25519 {
+enum Curve25519 {}
+
+extension Curve25519 {
 
     static let keyLength: Int = 32
 
