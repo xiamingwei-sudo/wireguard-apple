@@ -25,7 +25,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
             // Obtain protocol configuration
             guard let tunnelProviderProtocol = self.protocolConfiguration as? NETunnelProviderProtocol else {
-                let error = WireGuardPacketTunnelProviderError.missingProtocolConfiguration
+                let error = WireGuardPacketTunnelProviderError.loadTunnelConfiguration(.missingProtocolConfiguration)
                 self.handleTunnelError(error)
                 startTunnelCompletionHandler(error)
                 return
@@ -36,7 +36,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 tunnelConfiguration = try self.getTunnelConfiguration(from: tunnelProviderProtocol)
             } catch {
-                let tunnelError = WireGuardPacketTunnelProviderError.readTunnelConfiguration(error)
+                let tunnelError = WireGuardPacketTunnelProviderError.loadTunnelConfiguration(.parseFailure(error))
                 self.handleTunnelError(tunnelError)
                 startTunnelCompletionHandler(tunnelError)
                 return
@@ -216,34 +216,27 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
     }
 }
 
-
 /// An error type describing packet tunnel errors.
 public enum WireGuardPacketTunnelProviderError: LocalizedError {
-    /// Protocol configuration is not passed along with VPN configuration
-    case missingProtocolConfiguration
+    /// A failure to read the tunnel configuration during the startup.
+    case loadTunnelConfiguration(WireGuardPacketTunnelConfigurationError)
 
-    /// A failure to read the tunnel configuration
-    case readTunnelConfiguration(Error)
-
-    /// A failure to resolve endpoints DNS
+    /// A failure to resolve endpoints DNS.
     case dnsResolution
 
-    /// A failure to set network settings
+    /// A failure to set network settings.
     case setNetworkSettings(Error)
 
-    /// A failure to obtain the tunnel device file descriptor
+    /// A failure to obtain the tunnel device file descriptor.
     case tunnelDeviceFileDescriptor
 
-    /// A failure to start WireGuard backend
+    /// A failure to start WireGuard backend.
     case startWireGuardBackend
 
     public var errorDescription: String? {
         switch self {
-        case .missingProtocolConfiguration:
-            return "Missing protocol configuration"
-
-        case .readTunnelConfiguration(let error):
-            return "Failure to read tunnel configuration: \(error.localizedDescription)"
+        case .loadTunnelConfiguration(let error):
+            return "Failure to load tunnel configuratino: \(error.localizedDescription)"
 
         case .dnsResolution:
             return "Failure to resolve endpoints DNS"
@@ -260,10 +253,14 @@ public enum WireGuardPacketTunnelProviderError: LocalizedError {
     }
 }
 
-/// An error type describing subclassing requirement failures.
-private enum SubclassRequirementError: LocalizedError {
-    /// A feature is not implemented by the subclass.
-    case notImplemented
+/// An error type describing errors associated with reading the tunnel configuration
+public enum WireGuardPacketTunnelConfigurationError: Error {
+    /// Protocol configuration is not passed along with VPN configuration.
+    case missingProtocolConfiguration
+
+    /// Failure to parse tunnel configuration.
+    case parseFailure(Error)
+}
 
     public var errorDescription: String? {
         switch self {
