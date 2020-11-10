@@ -131,7 +131,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Subclassing
 
-    open func handleTunnelError(_ error: PacketTunnelProviderError) {
+    open func handleTunnelError(_ error: WireGuardPacketTunnelProviderError) {
         // Implement in subclasses
     }
 
