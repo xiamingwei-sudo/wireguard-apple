@@ -38,7 +38,7 @@ class PacketTunnelProvider: WireGuardPacketTunnelProvider {
 
     // MARK: - Subclassing
 
-    override func handleTunnelError(_ error: PacketTunnelProviderError) {
+    override func handleTunnelError(_ error: WireGuardPacketTunnelProviderError) {
         if self.errorNotifier == nil {
             self.errorNotifier = ErrorNotifier(activationAttemptId: self.activationAttemptId)
         }

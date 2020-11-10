@@ -476,7 +476,7 @@ private func lastErrorTextFromNetworkExtension(for tunnel: TunnelContainer) -> (
     guard lastErrorStrings.count == 2 && tunnel.activationAttemptId == lastErrorStrings[0] else { return nil }
 
     // FIXME: deserialize it somehow
-    // if let extensionError = PacketTunnelProviderError(rawValue: lastErrorStrings[1]) {
+    // if let extensionError = WireGuardPacketTunnelProviderError(rawValue: lastErrorStrings[1]) {
     //     return extensionError.alertText
     // }
 

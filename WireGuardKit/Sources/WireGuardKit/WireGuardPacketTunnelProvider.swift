@@ -25,7 +25,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
             // Obtain protocol configuration
             guard let tunnelProviderProtocol = self.protocolConfiguration as? NETunnelProviderProtocol else {
-                let error = PacketTunnelProviderError.missingProtocolConfiguration
+                let error = WireGuardPacketTunnelProviderError.missingProtocolConfiguration
                 self.handleTunnelError(error)
                 startTunnelCompletionHandler(error)
                 return
@@ -50,7 +50,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
             let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
             guard let resolvedEndpoints = DNSResolver.resolveSync(endpoints: endpoints) else {
-                let error = PacketTunnelProviderError.dnsResolution
+                let error = WireGuardPacketTunnelProviderError.dnsResolution
                 self.handleTunnelError(error)
                 startTunnelCompletionHandler(error)
                 return
@@ -64,9 +64,9 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
                     if let error = error {
                         self.logLine(level: .error, message: "Starting tunnel failed with setTunnelNetworkSettings returning \(error.localizedDescription)")
 
-                        let tunnelProviderError = PacketTunnelProviderError.setNetworkSettings(error)
-                        self.handleTunnelError(tunnelProviderError)
-                        startTunnelCompletionHandler(tunnelProviderError)
+                        let tunnelError = WireGuardPacketTunnelProviderError.setNetworkSettings(error)
+                        self.handleTunnelError(tunnelError)
+                        startTunnelCompletionHandler(tunnelError)
                     } else {
                         self.networkMonitor = NWPathMonitor()
                         self.networkMonitor!.pathUpdateHandler = { [weak self] path in
@@ -78,9 +78,9 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
                         if fileDescriptor < 0 {
                             self.logLine(level: .error, message: "Starting tunnel failed: Could not determine file descriptor")
 
-                            let tunnelProviderError = PacketTunnelProviderError.tunnelDeviceFileDescriptor
-                            self.handleTunnelError(tunnelProviderError)
-                            startTunnelCompletionHandler(tunnelProviderError)
+                            let tunnelError = WireGuardPacketTunnelProviderError.tunnelDeviceFileDescriptor
+                            self.handleTunnelError(tunnelError)
+                            startTunnelCompletionHandler(tunnelError)
                             return
                         }
 
@@ -92,9 +92,9 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
                         if handle < 0 {
                             self.logLine(level: .error, message: "Starting tunnel failed with wgTurnOn returning \(handle)")
 
-                            let tunnelProviderError = PacketTunnelProviderError.startWireGuardBackend
-                            self.handleTunnelError(tunnelProviderError)
-                            startTunnelCompletionHandler(tunnelProviderError)
+                            let tunnelError = WireGuardPacketTunnelProviderError.startWireGuardBackend
+                            self.handleTunnelError(tunnelError)
+                            startTunnelCompletionHandler(tunnelError)
                             return
                         }
                         self.handle = handle
@@ -216,7 +216,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
 
 /// An error type describing packet tunnel errors.
-public enum PacketTunnelProviderError: LocalizedError {
+public enum WireGuardPacketTunnelProviderError: LocalizedError {
     /// Protocol configuration is not passed along with VPN configuration
     case missingProtocolConfiguration
 
