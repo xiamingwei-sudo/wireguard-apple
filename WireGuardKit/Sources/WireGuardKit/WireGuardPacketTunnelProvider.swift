@@ -140,7 +140,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     open func getTunnelConfiguration(from tunnelProviderProtocol: NETunnelProviderProtocol) throws -> TunnelConfiguration {
-        throw SubclassRequirementError.notImplemented
+        throw SubclassRequirementError()
     }
 
     // MARK: - Public
@@ -262,11 +262,10 @@ public enum WireGuardPacketTunnelConfigurationError: Error {
     case parseFailure(Error)
 }
 
+/// An error type describing subclass requirement not being met
+private struct SubclassRequirementError: LocalizedError {
     public var errorDescription: String? {
-        switch self {
-        case .notImplemented:
-            return "Subclass does not implement the method"
-        }
+        return "Subclass does not implement the method"
     }
 }
 
