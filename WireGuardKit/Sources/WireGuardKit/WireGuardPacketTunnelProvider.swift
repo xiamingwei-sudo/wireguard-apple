@@ -100,6 +100,10 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
                             return
                         }
                         self.handle = handle
+
+                        // Tell the subclass when tunnel has started.
+                        self.tunnelDidStart()
+
                         startTunnelCompletionHandler(nil)
                     }
                 }
@@ -117,6 +121,9 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
                 wgTurnOff(handle)
             }
             wgSetLogger(nil, nil)
+
+            // Tell the subclass when tunnel has stopped.
+            self.tunnelDidStop()
 
             completionHandler()
 
@@ -141,6 +148,14 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
     open func getTunnelConfiguration(from tunnelProviderProtocol: NETunnelProviderProtocol) throws -> TunnelConfiguration {
         throw SubclassRequirementError()
+    }
+
+    open func tunnelDidStart() {
+        // Implement in subclasses
+    }
+
+    open func tunnelDidStop() {
+        // Implement in subclasses
     }
 
     // MARK: - Public
