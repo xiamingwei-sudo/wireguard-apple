@@ -7,10 +7,8 @@ public struct PeerConfiguration {
     public var publicKey: Data
     public var preSharedKey: Data? {
         didSet(value) {
-            if let value = value {
-                if value.count != TunnelConfiguration.keyLength {
-                    fatalError("Invalid preshared key")
-                }
+            if let value = value, value.count != TunnelConfiguration.keyLength {
+                fatalError("Invalid preshared key")
             }
         }
     }
