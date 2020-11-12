@@ -23,23 +23,16 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
         dispatchQueue.async {
             self.activationAttemptId = options?[Self.activationAttemptIdentifierOptionsKey] as? String
 
-            // Obtain protocol configuration
-            guard let tunnelProviderProtocol = self.protocolConfiguration as? NETunnelProviderProtocol else {
-                let error = WireGuardPacketTunnelProviderError.loadTunnelConfiguration(.missingProtocolConfiguration)
-                self.handleTunnelError(error)
-                startTunnelCompletionHandler(error)
-                return
-            }
-
             // Read tunnel configuration
             let tunnelConfiguration: TunnelConfiguration
             do {
-                tunnelConfiguration = try self.getTunnelConfiguration(from: tunnelProviderProtocol)
-            } catch {
-                let tunnelError = WireGuardPacketTunnelProviderError.loadTunnelConfiguration(.parseFailure(error))
-                self.handleTunnelError(tunnelError)
-                startTunnelCompletionHandler(tunnelError)
+                tunnelConfiguration = try self.makeTunnelConfiguration()
+            } catch let error as WireGuardPacketTunnelProviderError {
+                self.handleTunnelError(error)
+                startTunnelCompletionHandler(error)
                 return
+            } catch {
+                fatalError()
             }
 
             // Configure WireGuard logger
@@ -50,6 +43,7 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
             self.logLine(level: .info, message: "Starting tunnel from the " + (self.activationAttemptId == nil ? "OS directly, rather than the app" : "app"))
 
+            // Resolve peers
             let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
             guard let resolvedEndpoints = DNSResolver.resolveSync(endpoints: endpoints) else {
                 let error = WireGuardPacketTunnelProviderError.dnsResolution
@@ -158,6 +152,10 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
         // Implement in subclasses
     }
 
+    open func tunnelWillReconnect() {
+        // Implement in subclasses
+    }
+
     // MARK: - Public
 
     public func getWireGuardConfiguration(completionHandler: @escaping (String?) -> Void) {
@@ -176,7 +174,91 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    public func reloadTunnelConfiguration(completionHandler: @escaping (WireGuardPacketTunnelProviderError?) -> Void) {
+        self.dispatchQueue.async {
+            self.logLine(level: .info, message: "Reload tunnel configuration")
+
+            let finishReasserting = { (_ error: WireGuardPacketTunnelProviderError?) in
+                // Tell the system that the tunnel has finished reconnecting.
+                self.reasserting = false
+
+                if let error = error {
+                    self.handleTunnelError(error)
+                }
+                completionHandler(error)
+            }
+
+            // Let the subclass set up internal data structures before raising the `reasserting`
+            // flag in order for GUI process to be able to fetch the new data via IPC call in
+            // response to `NEVPNStatusDidChange` notification.
+            self.tunnelWillReconnect()
+
+            // Tell the system that the tunnel is going to reconnect using new WireGuard
+            // configuration.
+            // This will broadcast the `NEVPNStatusDidChange` notification to the GUI process.
+            self.reasserting = true
+
+            // Read tunnel configuration
+            let tunnelConfiguration: TunnelConfiguration
+            do {
+                tunnelConfiguration = try self.makeTunnelConfiguration()
+            } catch let error as WireGuardPacketTunnelProviderError {
+                finishReasserting(error)
+                return
+            } catch {
+                fatalError()
+            }
+
+            // Resolve peers
+            let endpoints = tunnelConfiguration.peers.map { $0.endpoint }
+            guard let resolvedEndpoints = DNSResolver.resolveSync(endpoints: endpoints) else {
+                finishReasserting(.dnsResolution)
+                return
+            }
+            assert(endpoints.count == resolvedEndpoints.count)
+
+            let settingsGenerator = PacketTunnelSettingsGenerator(
+                tunnelConfiguration: tunnelConfiguration,
+                resolvedEndpoints: resolvedEndpoints
+            )
+            self.packetTunnelSettingsGenerator = settingsGenerator
+
+            self.setTunnelNetworkSettings(settingsGenerator.generateNetworkSettings()) { error in
+                self.dispatchQueue.async {
+                    if let error = error {
+                        self.logLine(level: .error, message: "Reloading tunnel failed with setTunnelNetworkSettings returning \(error.localizedDescription)")
+
+                        finishReasserting(.setNetworkSettings(error))
+                    } else {
+                        if let handle = self.handle {
+                            _ = settingsGenerator.uapiConfiguration()
+                                .withCString { wgSetConfig(handle, $0) }
+                        }
+                        finishReasserting(nil)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Private
+
+
+    /// Load tunnel configuration using available protocol configuration.
+    /// - Throws: an error of type `WireGuardPacketTunnelProviderError`.
+    /// - Returns: `TunnelConfiguration`.
+    private func makeTunnelConfiguration() throws -> TunnelConfiguration {
+        // Obtain protocol configuration
+        guard let tunnelProviderProtocol = self.protocolConfiguration as? NETunnelProviderProtocol else {
+            throw WireGuardPacketTunnelProviderError.missingProtocolConfiguration
+        }
+
+        do {
+            return try self.getTunnelConfiguration(from: tunnelProviderProtocol)
+        } catch {
+            throw WireGuardPacketTunnelProviderError.parseTunnelConfiguration(error)
+        }
+    }
 
     private class func getInterfaceName(fileDescriptor: Int32) -> String? {
         var ifnameBytes = [CChar](repeating: 0, count: Int(IF_NAMESIZE))
@@ -233,8 +315,11 @@ open class WireGuardPacketTunnelProvider: NEPacketTunnelProvider {
 
 /// An error type describing packet tunnel errors.
 public enum WireGuardPacketTunnelProviderError: LocalizedError {
-    /// A failure to read the tunnel configuration during the startup.
-    case loadTunnelConfiguration(WireGuardPacketTunnelConfigurationError)
+    /// Protocol configuration is not passed along with VPN configuration.
+    case missingProtocolConfiguration
+
+    /// Failure to parse tunnel configuration.
+    case parseTunnelConfiguration(Error)
 
     /// A failure to resolve endpoints DNS.
     case dnsResolution
@@ -250,8 +335,11 @@ public enum WireGuardPacketTunnelProviderError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .loadTunnelConfiguration(let error):
-            return "Failure to load tunnel configuratino: \(error.localizedDescription)"
+        case .missingProtocolConfiguration:
+            return "Missing protocol configuration"
+
+        case .parseTunnelConfiguration(let error):
+            return "Failure to parse tunnel configuration: \(error.localizedDescription)"
 
         case .dnsResolution:
             return "Failure to resolve endpoints DNS"
@@ -266,15 +354,6 @@ public enum WireGuardPacketTunnelProviderError: LocalizedError {
             return "Failure to start WireGuard backend"
         }
     }
-}
-
-/// An error type describing errors associated with reading the tunnel configuration
-public enum WireGuardPacketTunnelConfigurationError: Error {
-    /// Protocol configuration is not passed along with VPN configuration.
-    case missingProtocolConfiguration
-
-    /// Failure to parse tunnel configuration.
-    case parseFailure(Error)
 }
 
 /// An error type describing subclass requirement not being met
