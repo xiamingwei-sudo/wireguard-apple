@@ -110,7 +110,7 @@ class TunnelViewModel {
                 }
                 if field == .privateKey {
                     if stringValue.count == TunnelViewModel.keyLengthInBase64, let privateKey = Data(base64Key: stringValue), privateKey.count == TunnelConfiguration.keyLength {
-                        let publicKey = Curve25519.generatePublicKey(fromPrivateKey: privateKey).base64Key() ?? ""
+                        let publicKey = Curve25519.generatePublicKey(fromPrivateKey: privateKey)?.base64Key() ?? ""
                         scratchpad[.publicKey] = publicKey
                     } else {
                         scratchpad.removeValue(forKey: .publicKey)
@@ -129,7 +129,7 @@ class TunnelViewModel {
             var scratchpad = [InterfaceField: String]()
             scratchpad[.name] = name
             scratchpad[.privateKey] = config.privateKey.base64Key() ?? ""
-            scratchpad[.publicKey] = config.publicKey.base64Key() ?? ""
+            scratchpad[.publicKey] = config.publicKey?.base64Key() ?? ""
             if !config.addresses.isEmpty {
                 scratchpad[.addresses] = config.addresses.map { $0.stringRepresentation }.joined(separator: ", ")
             }
