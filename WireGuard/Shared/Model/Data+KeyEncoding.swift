@@ -22,10 +22,6 @@ extension Data {
         }
     }
 
-    public func isKey() -> Bool {
-        return self.count == WG_KEY_LEN
-    }
-
     public func hexKey() -> String? {
         guard self.count == WG_KEY_LEN else {
             return nil
